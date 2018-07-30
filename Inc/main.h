@@ -44,25 +44,48 @@
 /* Includes ------------------------------------------------------------------*/
 
 /* USER CODE BEGIN Includes */
-
+#include "stdint.h"
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
 
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
+#define B1_EXTI_IRQn EXTI4_15_IRQn
 #define MCO_Pin GPIO_PIN_0
 #define MCO_GPIO_Port GPIOH
-#define USART_TX_Pin GPIO_PIN_2
-#define USART_TX_GPIO_Port GPIOA
-#define USART_RX_Pin GPIO_PIN_3
-#define USART_RX_GPIO_Port GPIOA
+#define LIS3MDL_DRDY_Pin GPIO_PIN_0
+#define LIS3MDL_DRDY_GPIO_Port GPIOC
+#define LIS3MDL_DRDY_EXTI_IRQn EXTI0_1_IRQn
+#define LIS3MDL_INT1_Pin GPIO_PIN_1
+#define LIS3MDL_INT1_GPIO_Port GPIOC
+#define LIS3MDL_INT1_EXTI_IRQn EXTI0_1_IRQn
+#define LORA_TX_Pin GPIO_PIN_2
+#define LORA_TX_GPIO_Port GPIOA
+#define LORA_RX_Pin GPIO_PIN_3
+#define LORA_RX_GPIO_Port GPIOA
+#define DIL24_INT1_Pin GPIO_PIN_4
+#define DIL24_INT1_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define DIL24_INT2_Pin GPIO_PIN_0
+#define DIL24_INT2_GPIO_Port GPIOB
+#define HTS221_DRDY_Pin GPIO_PIN_10
+#define HTS221_DRDY_GPIO_Port GPIOB
+#define HTS221_DRDY_EXTI_IRQn EXTI4_15_IRQn
+#define USER_INT_Pin GPIO_PIN_10
+#define USER_INT_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
+#define LPS25HB_INT1_Pin GPIO_PIN_4
+#define LPS25HB_INT1_GPIO_Port GPIOB
+#define LPS25HB_INT1_EXTI_IRQn EXTI4_15_IRQn
+#define LSM6DS0_INT1_Pin GPIO_PIN_5
+#define LSM6DS0_INT1_GPIO_Port GPIOB
+#define LSM6DS0_INT1_EXTI_IRQn EXTI4_15_IRQn
 
 /* ########################## Assert Selection ############################## */
 /**
@@ -72,7 +95,32 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
+typedef struct {
+	uint32_t temperture;
+	uint32_t pressure;
+	uint32_t humidity;
+	uint32_t gyro_x;
+	uint32_t gyro_y;
+	uint32_t gyro_z;
+	uint32_t accel_x;
+	uint32_t accel_y;
+	uint32_t accel_z;
+	uint32_t magnet_x;
+	uint32_t magnet_y;
+	uint32_t magnet_z;
+} sensor_t;
 
+typedef struct {
+	bool activation_mode; //0:ABP 1:OTAA
+	uint8_t	dev_eui [8];
+	uint8_t	app_eui [8];
+	uint8_t dev_addr [4];
+	uint8_t	nkw_key [16];
+	uint8_t	app_key [16];
+} user_setting_t;
+
+extern sensor_t dSersor;
+extern user_setting_t uSetting;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
