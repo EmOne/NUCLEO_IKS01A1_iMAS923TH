@@ -22,7 +22,6 @@
 
 #include "WiMOD_LoRaWAN_API.h"
 #include "WiMOD_HCI_Layer.h"
-#include "SerialDevice.h"
 #include "SLIP.h"
 #include <string.h>
 #include <stdio.h>
@@ -30,7 +29,128 @@
 #define MAKEWORD(lo,hi) ((lo)|((hi) << 8))
 #define MAKELONG(lo,hi) ((lo)|((hi) << 16))
 
-eWimod_msg_state msg_state;
+//eWimod_msg_state msg_state;
+///**
+// * @brief  This function converts a text string into a number.
+// * @param  str       The pointer to the text string to convert.
+// * @param  pnum      The pointer to the numerical variable.
+// * @retval FlagStatus  SET or RESET related to the conversion.
+// */
+FlagStatus str2num(uint8_t* str, uint32_t* pnum) {
+	uint8_t TxtStr_digit, digit;
+	uint32_t tenpwr;
+	uint32_t number;
+
+	digit = 0;
+
+	while (*(str + digit) != '\0') {
+		if (((*(str + digit) >= '0') && (*(str + digit) <= '9'))) {
+			digit++;
+		} else {
+			*pnum = 0;
+			return RESET;
+		}
+	}
+
+	tenpwr = 1;
+	number = 0;
+
+	do {
+		TxtStr_digit = (*(str + (--digit)));
+		number += ((TxtStr_digit - '0') * tenpwr);
+		tenpwr *= 10;
+	} while (digit);
+
+	*pnum = number;
+	return SET;
+}
+//
+///**
+// * @brief  Convert a number nbr into a string str with 7 characters.
+// * @param  nbr The number to be converted.
+// * @param  str The container of the converted number into a text in decimal
+// *         format.
+// * @note   The decimal digits of the number must be maximum 7 so str has to be
+// *         able to store at least 7 characters plus '\0'.
+// */
+void num2str(uint32_t nbr, uint8_t *str) {
+	uint8_t k;
+	uint8_t *pstrbuff;
+	uint32_t divisor;
+
+	pstrbuff = str;
+
+	/* Reset the text string */
+	for (k = 0; k < 7; k++)
+		*(pstrbuff + k) = '\0';
+
+	divisor = 1000000;
+
+	if (nbr) // if nbr is different from zero then it is processed
+	{
+		while (!(nbr / divisor)) {
+			divisor /= 10;
+		}
+
+		while (divisor >= 10) {
+			k = nbr / divisor;
+			*pstrbuff++ = '0' + k;
+			nbr = nbr - (k * divisor);
+			divisor /= 10;
+		}
+	}
+
+	*pstrbuff++ = '0' + nbr;
+	*pstrbuff++ = '\0';
+}
+
+///**
+// * @brief  Convert an integer number into hexadecimal format.
+// *
+// * @param  num         The integer number to convert.
+// * @param  HexFormat   The output format about hexadecimal number.
+// *
+// * @retval uint8_t*    The address of the string text for the converted hexadecimal number.
+// */
+uint8_t* num2hex(uint32_t num, eHexFormat HexFormat) {
+	static uint8_t HexValue[8 + 1];
+	uint8_t i;
+	uint8_t dummy;
+	uint8_t HexDigits = 0;
+
+	switch (HexFormat) {
+	case HALFBYTE_F:
+		HexDigits = 1;
+		break;
+	case BYTE_F:
+		HexDigits = 2;
+		break;
+	case WORD_F:
+		HexDigits = 4;
+		break;
+	case DOUBLEWORD_F:
+		HexDigits = 8;
+		break;
+	default:
+		HexDigits = 2;
+		break;
+	}
+
+	for (i = 0; i < HexDigits; i++) {
+		HexValue[i] = '\0';
+		dummy = (num & (0x0F << (((HexDigits - 1) - i) * 4)))
+				>> (((HexDigits - 1) - i) * 4);
+		if (dummy < 0x0A) {
+			HexValue[i] = dummy + '0';
+		} else {
+			HexValue[i] = (dummy - 0x0A) + 'A';
+		}
+	}
+	HexValue[i] = '\0';
+
+	return HexValue;
+}
+
 //------------------------------------------------------------------------------
 //
 //  Forward Declarations
@@ -763,9 +883,9 @@ WiMOD_LoRaWAN_DevMgmt_Get_OPMODE_Rsp(TWiMOD_HCI_Message* rxMessage)
 
 	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
 	{
-		USART_Transmit(&hlpuart1, "OPMODE Set: 0x");
-		USART_Transmit(&hlpuart1, (const char*) num2hex((uint32_t)rxMessage->Payload[1], BYTE_F));
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("OPMODE Set: 0x");
+		printf((const char*) num2hex((uint32_t)rxMessage->Payload[1], BYTE_F));
+		printf("\n\r");
 	}
 }
 //------------------------------------------------------------------------------
@@ -784,26 +904,26 @@ WiMOD_LoRaWAN_DevMgmt_Get_RTC_ALARM_Rsp(TWiMOD_HCI_Message* rxMessage)
 
 	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
 	{
-		USART_Transmit(&hlpuart1, "RTC ALARM Set: 0x");
-		USART_Transmit(&hlpuart1, (const char*) num2hex((uint32_t)rxMessage->Payload[1], BYTE_F));
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RTC ALARM Set: 0x");
+		printf((const char*) num2hex((uint32_t)rxMessage->Payload[1], BYTE_F));
+		printf("\n\r");
 
-		USART_Transmit(&hlpuart1, "RTC ALARM Daily: 0x");
-		USART_Transmit(&hlpuart1, (const char*) num2hex((uint32_t)rxMessage->Payload[2], BYTE_F));
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RTC ALARM Daily: 0x");
+		printf((const char*) num2hex((uint32_t)rxMessage->Payload[2], BYTE_F));
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[3], 3);
-		USART_Transmit(&hlpuart1, "RTC ALARM Time: [");
+		printf("RTC ALARM Time: [");
 		num2str((help & 0xFF), str);	//Hour
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, ":");
+		printf((const char*) str);
+		printf(":");
 		num2str((help & 0xFF00) >> 8, str);	//Minute
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, ":");
+		printf((const char*) str);
+		printf(":");
 		num2str((help & 0xFF0000) >> 16, str);	//second
-		USART_Transmit(&hlpuart1, (const char*) str);
+		printf((const char*) str);
 
-		USART_Transmit(&hlpuart1, "]\n\r");
+		printf("]\n\r");
 	}
 }
 
@@ -824,25 +944,25 @@ WiMOD_LoRaWAN_DevMgmt_Get_RTC_Rsp(TWiMOD_HCI_Message* rxMessage)
 	if (rxMessage->Payload[0] == DEVMGMT_STATUS_OK)
 	{
 		memcpy((uint8_t *) &help, &rxMessage->Payload[1], 4);
-		USART_Transmit(&hlpuart1, "RTC Time: ");
+		printf("RTC Time: ");
 		num2str(((help & 0xfc000000) >> 26) + 2000, str); //Year
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, "-");
+		printf((const char*) str);
+		printf("-");
 		num2str(((help & 0xf000) >> 12), str);	//Months
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, "-");
+		printf((const char*) str);
+		printf("-");
 		num2str(((help & 0x3e00000) >> 21), str);	//Day
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, " [");
+		printf((const char*) str);
+		printf(" [");
 		num2str(((help & 0x1f0000) >> 16), str);	//Hour
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, ":");
+		printf((const char*) str);
+		printf(":");
 		num2str(((help & 0xfc0) >> 6), str);	//Minutes
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, ":");
+		printf((const char*) str);
+		printf(":");
 		num2str(((help & 0x3f)), str);	//Seconds
-		USART_Transmit(&hlpuart1, (const char*) str);
-		USART_Transmit(&hlpuart1, "]\n\r");
+		printf((const char*) str);
+		printf("]\n\r");
 	}
 }
 
@@ -864,114 +984,114 @@ WiMOD_LoRaWAN_DevMgmt_DeviceStatus_Rsp(TWiMOD_HCI_Message* rxMessage)
 	{
 		memcpy((uint8_t *) &help, &rxMessage->Payload[1], 1);
 		num2str(help & 0xFF, str);
-		USART_Transmit(&hlpuart1, "System Tick Resolution: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, " ms\n\r");
+		printf("System Tick Resolution: ");
+		printf((const char* ) str);
+		printf(" ms\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[2], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "System Tick: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("System Tick: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[6], 4);
-		USART_Transmit(&hlpuart1, "Target Time: ");
+		printf("Target Time: ");
 		num2str(((help & 0xfc000000) >> 26) + 2000, str); //Year
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "-");
+		printf((const char* ) str);
+		printf("-");
 		num2str(((help & 0xf000) >> 12), str);	//Months
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "-");
+		printf((const char* ) str);
+		printf("-");
 		num2str(((help & 0x3e00000) >> 21), str);	//Day
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, " [");
+		printf((const char* ) str);
+		printf(" [");
 		num2str(((help & 0x1f0000) >> 16), str);	//Hour
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, ":");
+		printf((const char* ) str);
+		printf(":");
 		num2str(((help & 0xfc0) >> 6), str);	//Minutes
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, ":");
+		printf((const char* ) str);
+		printf(":");
 		num2str(((help & 0x3f)), str);	//Seconds
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "]\n\r");
+		printf((const char* ) str);
+		printf("]\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[10], 2);
 		num2str(help & 0xFFFF, str);
-		USART_Transmit(&hlpuart1, "NVM Status: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("NVM Status: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[12], 2);
 		num2str(help & 0xFFFF, str);
-		USART_Transmit(&hlpuart1, "Battery level: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, " mV\n\r");
+		printf("Battery level: ");
+		printf((const char* ) str);
+		printf(" mV\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[16], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "TX U-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("TX U-Data: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[20], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "TX C-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("TX C-Data: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[24], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "TX Error: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("TX Error: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[28], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX1 U-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX1 U-Data: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[32], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX1 C-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX1 C-Data: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[36], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX1 MIC-Error: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX1 MIC-Error: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[40], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX2 U-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX2 U-Data: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[44], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX2 C-Data: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX2 C-Data: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[48], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX2 MIC-Error: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX2 MIC-Error: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[52], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "TX Join: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("TX Join: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 		memcpy((uint8_t *) &help, &rxMessage->Payload[56], 4);
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, "RX Accept: ");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("RX Accept: ");
+		printf((const char* ) str);
+		printf("\n\r");
 
 	}
 }
@@ -997,17 +1117,17 @@ WiMOD_LoRaWAN_DevMgmt_DeviceInfo_Rsp(TWiMOD_HCI_Message*  rxMessage)
 
         memcpy((uint8_t *) &help, &rxMessage->Payload[2], 4);
 
-        USART_Transmit(&hlpuart1, "Device address: 0x");
-        USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
-        USART_Transmit(&hlpuart1, "\n\r");
+        printf("Device address: 0x");
+        printf((const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
+        printf("\n\r");
 
         memcpy((uint8_t *) &help, &rxMessage->Payload[6], 4);
-        USART_Transmit(&hlpuart1, "Device ID: 0x");
-		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
-		USART_Transmit(&hlpuart1, "(");
+        printf("Device ID: 0x");
+		printf((const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
+		printf("(");
 		num2str(help, str);
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, ")\n\r");
+		printf((const char* ) str);
+		printf(")\n\r");
     }
 }
 
@@ -1120,7 +1240,7 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
         		break;
 
         case    LORAWAN_MSG_RECV_NODATA_IND:
-                USART_Transmit(&hlpuart1, "no data received indication\n\r");
+                printf("no data received indication\n\r");
                 break;
 
         case	LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
@@ -1164,9 +1284,9 @@ WiMOD_LoRaWAN_Process_LoRaWAN_Message(TWiMOD_HCI_Message*  rxMessage)
             break;
 
         default:
-        		USART_Transmit(&hlpuart1, "Unhandled LoRaWAN SAP message received - MsgID : 0x");
-        		USART_Transmit(&hlpuart1, num2hex(rxMessage->MsgID, BYTE_F));
-        		USART_Transmit(&hlpuart1, "\n\r");
+        		printf("Unhandled LoRaWAN SAP message received - MsgID : 0x");
+        		printf(num2hex(rxMessage->MsgID, BYTE_F));
+        		printf("\n\r");
                 break;
     }
 }
@@ -1190,11 +1310,11 @@ WiMOD_LoRaWAN_Process_Reactivate_Rsp(TWiMOD_HCI_Message*  rxMessage)
     {
     	memcpy((uint8_t*) &help, &rxMessage->Payload[1], 4);
     	num2str(help, str);	//Second
-    	USART_Transmit(&hlpuart1, "Device address: 0x");
-		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
-		USART_Transmit(&hlpuart1, "(");
-		USART_Transmit(&hlpuart1, (const char* ) str);
-		USART_Transmit(&hlpuart1, ")\n\r");
+    	printf("Device address: 0x");
+		printf((const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
+		printf("(");
+		printf((const char* ) str);
+		printf(")\n\r");
     }
 }
 
@@ -1341,12 +1461,12 @@ WiMOD_LoRaWAN_Process_U_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
 
     if (payloadSize >= 1)
     {
-    	USART_Transmit(&hlpuart1, "U-Data rx event: port:0x");
-        USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1], BYTE_F));
-        USART_Transmit(&hlpuart1, "\n\rapp-payload: 0x");
+    	printf("U-Data rx event: port:0x");
+        printf(num2hex(rxMessage->Payload[1], BYTE_F));
+        printf("\n\rapp-payload: 0x");
         for(int i = 1; i < payloadSize; i++)
-        	USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1+i], BYTE_F));
-        USART_Transmit(&hlpuart1, "\n\r");
+        	printf(num2hex(rxMessage->Payload[1+i], BYTE_F));
+        printf("\n\r");
     }
 
     if (rxMessage->Payload[0] & 0x02)
@@ -1382,22 +1502,22 @@ WiMOD_LoRaWAN_Process_Get_LINK_ADR_RSP(TWiMOD_HCI_Message* rxMessage)
 	WiMOD_LoRaWAN_ShowResponse(" Get Network Status ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
 
 		if (rxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-			USART_Transmit(&hlpuart1, "LinkADRReq Option: ");
+			printf("LinkADRReq Option: ");
 			switch (rxMessage->Payload[1]) {
 				case 0:
-					USART_Transmit(&hlpuart1, "LoRaWAN v1.0.2");
+					printf("LoRaWAN v1.0.2");
 					break;
 				case 1:
-					USART_Transmit(&hlpuart1, "Semtech proposal");
+					printf("Semtech proposal");
 									break;
 				case 2:
-					USART_Transmit(&hlpuart1, "KPN/Actility proposal");
+					printf("KPN/Actility proposal");
 									break;
 				default:
-					USART_Transmit(&hlpuart1, "Unknown proposal");
+					printf("Unknown proposal");
 					break;
 			}
-			USART_Transmit(&hlpuart1, "\n\r");
+			printf("\n\r");
 		}
 
 
@@ -1436,24 +1556,24 @@ WiMOD_LoRaWAN_Process_Get_Network_Status_RSP(TWiMOD_HCI_Message* rxMessage)
 		}
 		memcpy((uint8_t *) &help, &rxMessage->Payload[2], 4);
 
-		USART_Transmit(&hlpuart1, "\tDevice address: 0x");
-		USART_Transmit(&hlpuart1, (const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("\tDevice address: 0x");
+		printf((const char* ) num2hex((uint32_t)help, DOUBLEWORD_F));
+		printf("\n\r");
 
 		num2str(rxMessage->Payload[6],str);
-		USART_Transmit(&hlpuart1, "\tDR: ");
-		USART_Transmit(&hlpuart1, str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("\tDR: ");
+		printf(str);
+		printf("\n\r");
 
 		num2str(rxMessage->Payload[7],str);
-		USART_Transmit(&hlpuart1, "\tPower: ");
-		USART_Transmit(&hlpuart1, str);
-		USART_Transmit(&hlpuart1, "dBm\n\r");
+		printf("\tPower: ");
+		printf(str);
+		printf("dBm\n\r");
 
 		num2str(rxMessage->Payload[8],str);
-		USART_Transmit(&hlpuart1, "\tMax. payload size: ");
-		USART_Transmit(&hlpuart1, str);
-		USART_Transmit(&hlpuart1, "\n\r");
+		printf("\tMax. payload size: ");
+		printf(str);
+		printf("\n\r");
 
 	}
 }
@@ -1557,69 +1677,69 @@ WiMOD_LoRaWAN_Process_Get_RSTACK_RSP(TWiMOD_HCI_Message* rxMessage)
 	uint32_t help;
 	WiMOD_LoRaWAN_ShowResponse("Get Radio STACK ReSPonse", WiMOD_LoRaWAN_StatusStrings, rxMessage->Payload[0]);
 
-	USART_Transmit(&hlpuart1, "Data Rate: ");
+	printf("Data Rate: ");
 	num2str(rxMessage->Payload[1], str);
-	USART_Transmit(&hlpuart1, str);
-	USART_Transmit(&hlpuart1, "\n\r");
+	printf(str);
+	printf("\n\r");
 
-	USART_Transmit(&hlpuart1, "TX Power Level (EIRP): ");
+	printf("TX Power Level (EIRP): ");
 	num2str(rxMessage->Payload[2], str);
-	USART_Transmit(&hlpuart1, str);
-	USART_Transmit(&hlpuart1, "\n\r");
+	printf(str);
+	printf("\n\r");
 
-	USART_Transmit(&hlpuart1, "Adaptive DR: ");
+	printf("Adaptive DR: ");
 	if (rxMessage->Payload[3] & 0x1) {
-		USART_Transmit(&hlpuart1, "enable\n\r");
+		printf("enable\n\r");
 	} else {
-		USART_Transmit(&hlpuart1, "disable\n\r");
+		printf("disable\n\r");
 	}
-	USART_Transmit(&hlpuart1, "Duty Cycle: ");
+	printf("Duty Cycle: ");
 	if (rxMessage->Payload[3] & 0x2) {
-		USART_Transmit(&hlpuart1, "enable\n\r");
+		printf("enable\n\r");
 	} else {
-		USART_Transmit(&hlpuart1, "disable\n\r");
+		printf("disable\n\r");
 	}
-	USART_Transmit(&hlpuart1, "Class : ");
+	printf("Class : ");
 	if (rxMessage->Payload[3] & 0x4) {
-		USART_Transmit(&hlpuart1, "C\n\r");
+		printf("C\n\r");
 	} else {
-		USART_Transmit(&hlpuart1, "A\n\r");
+		printf("A\n\r");
 	}
-	USART_Transmit(&hlpuart1, "RF format : ");
+	printf("RF format : ");
 	if (rxMessage->Payload[3] & 0x40) {
-		USART_Transmit(&hlpuart1, "extended\n\r");
+		printf("extended\n\r");
 	} else {
-		USART_Transmit(&hlpuart1, "standard\n\r");
+		printf("standard\n\r");
 	}
-	USART_Transmit(&hlpuart1, "MAC forwarding : ");
+	printf("MAC forwarding : ");
 	if (rxMessage->Payload[3] & 0x80) {
-		USART_Transmit(&hlpuart1, "enable\n\r");
+		printf("enable\n\r");
 	} else {
-		USART_Transmit(&hlpuart1, "disable\n\r");
+		printf("disable\n\r");
 	}
 
 
-	USART_Transmit(&hlpuart1, "Power Saving Mode: ");
+	printf("Power Saving Mode: ");
 	if (rxMessage->Payload[4] & 0x1) {
-		USART_Transmit(&hlpuart1, "automatic\n\r");
+		printf("automatic\n\r");
 	} else {
-		USART_Transmit(&hlpuart1, "off\n\r");
+		printf("off\n\r");
 	}
 
-	USART_Transmit(&hlpuart1, "Retransmissions: ");
+	printf("Retransmissions: ");
 	num2str(rxMessage->Payload[5], str);
-	USART_Transmit(&hlpuart1, str);
-	USART_Transmit(&hlpuart1, "\n\r");
+	printf(str);
+	printf("\n\r");
 
-	USART_Transmit(&hlpuart1, "BandIdx: ");
+	printf("BandIdx: ");
 	num2str(rxMessage->Payload[6], str);
-	USART_Transmit(&hlpuart1, str);
-	USART_Transmit(&hlpuart1, "\n\r");
+	printf(str);
+	printf("\n\r");
 
-	USART_Transmit(&hlpuart1, "MAC length: ");
+	printf("MAC length: ");
 	num2str(rxMessage->Payload[7], str);
-	USART_Transmit(&hlpuart1, str);
-	USART_Transmit(&hlpuart1, "\n\r");
+	printf(str);
+	printf("\n\r");
 
 }
 //------------------------------------------------------------------------------
@@ -1640,10 +1760,10 @@ WiMOD_LoRaWAN_Process_MAC_CMDRxIndication(TWiMOD_HCI_Message* rxMessage)
 
     if (payloadSize >= 1)
     {
-        USART_Transmit(&hlpuart1, "MAC rx event:\n\rmac-payload: 0x");
+        printf("MAC rx event:\n\rmac-payload: 0x");
 		for(int i = 0; i < payloadSize; i++)
-			USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1+i], BYTE_F));
-		USART_Transmit(&hlpuart1, "\n\r");
+			printf(num2hex(rxMessage->Payload[1+i], BYTE_F));
+		printf("\n\r");
     }
 
 //    if (rxMessage->Payload[0] & 0x02)
@@ -1686,7 +1806,7 @@ WiMOD_LoRaWAN_Process_C_DataRxIndication(TWiMOD_HCI_Message* rxMessage)
     {
         printf("C-Data rx event: port:0x%02X\n\rapp-payload:", rxMessage->Payload[1]);
         for(int i = 1; i < payloadSize;)
-        	USART_Transmit(&hlpuart1, num2hex(rxMessage->Payload[1+i], BYTE_F));
+        	printf(num2hex(rxMessage->Payload[1+i], BYTE_F));
         printf("\n\r");
     }
 
@@ -1725,12 +1845,12 @@ WiMOD_LoRaWAN_ShowResponse(const char* string, const TIDString* statusTable, UIN
     {
         if (statusTable->ID == statusID)
         {
-            USART_Transmit(&hlpuart1, string);
-            USART_Transmit(&hlpuart1, " - Status(0x");
-			USART_Transmit(&hlpuart1, (const char* ) num2hex(statusID, BYTE_F));
-			USART_Transmit(&hlpuart1, ") ");
-            USART_Transmit(&hlpuart1, statusTable->String);
-            USART_Transmit(&hlpuart1, "\n\r");
+            printf(string);
+            printf(" - Status(0x");
+			printf((const char* ) num2hex(statusID, BYTE_F));
+			printf(") ");
+            printf(statusTable->String);
+            printf("\n\r");
             return;
         }
 

@@ -45,6 +45,7 @@
 #include "x_nucleo_iks01a1.h"
 #include "WiMOD_LoRaWAN_API.h"
 #include "eeprom.h"
+#include "cayenne_lpp.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -127,6 +128,9 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+	  //Read sensor
+	  //Parse Cayenne
+//	  Cayenne_LPP_parse(&sensor, AppData->Buff, 255);
 	  //Send data
 	  WiMOD_LoRaWAN_Process();
 	  HAL_Delay(1);

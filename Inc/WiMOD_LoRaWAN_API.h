@@ -189,6 +189,16 @@ typedef struct
 //  Function Prototypes
 //
 //------------------------------------------------------------------------------
+/**
+  * @brief The hexdecimal format to be used
+  */
+typedef enum
+{
+  HALFBYTE_F,     //!< 1 hex digit
+  BYTE_F,         //!< 2 hex digits
+  WORD_F,         //!< 4 hex digits
+  DOUBLEWORD_F    //!< 8 hex digits
+}eHexFormat;
 
 // init
 bool

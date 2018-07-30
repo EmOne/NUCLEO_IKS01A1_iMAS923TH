@@ -25,6 +25,7 @@
 #include "SLIP.h"
 #include <string.h>
 
+extern UART_HandleTypeDef huart2;
 //------------------------------------------------------------------------------
 //
 //  Forward Declaration
@@ -101,7 +102,8 @@ WiMOD_HCI_Init(
     SLIP_SetRxBuffer(&rxMessage->SapID, sizeof(TWiMOD_HCI_Message) - sizeof(UINT16));
 
     // init serial device
-return SerialDevice_Open(comPort, Baudrate_115200, DataBits_8, Parity_None);
+    UART_SetConfig(comPort);
+    return true;
 }
 
 //------------------------------------------------------------------------------
@@ -153,10 +155,10 @@ WiMOD_HCI_SendMessage(TWiMOD_HCI_Message* txMessage)
     {
         // send wakeup chars
         for(int i= 0; i < 40; i++)
-            SerialDevice_SendByte(SLIP_END);
+            HAL_UART_Transmit(&huart2, (uint8_t ) SLIP_END, 1, 100);
 
         // 4. send octet sequence over serial device
-        if (SerialDevice_SendData(TxBuffer, txLength) > 0)
+        if (HAL_UART_Transmit(&huart2, TxBuffer, txLength, 100) > 0)
         {
             // return ok
             return 1;
@@ -182,7 +184,7 @@ WiMOD_HCI_Process()
 	HAL_StatusTypeDef ret;
 
 	// read small chunk of data
-    ret = SerialDevice_ReadData(rxBuf_WiMOD, 255);
+    ret = HAL_UART_Receive(&huart2, rxBuf_WiMOD, 255, 500);
 //    msg_state = HEADER;
     // data available ?
     if (ret > -1)
