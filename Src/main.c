@@ -43,6 +43,12 @@
 /* USER CODE BEGIN Includes */
 #include "stm32l0xx_nucleo.h"
 #include "x_nucleo_iks01a1.h"
+#include "x_nucleo_iks01a1_accelero.h"
+#include "x_nucleo_iks01a1_gyro.h"
+#include "x_nucleo_iks01a1_humidity.h"
+#include "x_nucleo_iks01a1_magneto.h"
+#include "x_nucleo_iks01a1_pressure.h"
+#include "x_nucleo_iks01a1_temperature.h"
 #include "WiMOD_LoRaWAN_API.h"
 #include "eeprom.h"
 #include "cayenne_lpp.h"
@@ -74,11 +80,16 @@ static void MX_ADC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+DrvContextTypeDef hTemperatur;
+DrvContextTypeDef hHumidity;
+DrvContextTypeDef hPressure;
+DrvContextTypeDef hAccel;
+DrvContextTypeDef hGyro;
+DrvContextTypeDef hMagneto;
 /* USER CODE END 0 */
 
 /**
@@ -91,6 +102,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	memset(&dSersor, 0x0, sizeof(sensor_t));
 	memset(&uSetting, 0x0,sizeof(user_setting_t));
+
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -116,12 +128,35 @@ int main(void)
   MX_I2C1_Init();
   MX_ADC_Init();
   /* USER CODE BEGIN 2 */
+
+  //Initialize BSP sensor
   Sensor_IO_Init();
+	if (BSP_TEMPERATURE_Init(TEMPERATURE_SENSORS_AUTO, &hTemperatur)
+			!= COMPONENT_OK)
+		printf("Initialize temperature missing!!!\r\n");
+	if (BSP_HUMIDITY_Init(HUMIDITY_SENSORS_AUTO, &hHumidity) != COMPONENT_OK)
+		printf("Initialize humidity missing!!!\r\n");
+	if (BSP_PRESSURE_Init(PRESSURE_SENSORS_AUTO, &hPressure) != COMPONENT_OK)
+		printf("Initialize pressure missing!!!\r\n");
+	if (BSP_ACCELERO_Init(ACCELERO_SENSORS_AUTO, &hAccel) != COMPONENT_OK)
+		printf("Initialize accelero missing!!!\r\n");
+	if (BSP_GYRO_Init(GYRO_SENSORS_AUTO, &hGyro) != COMPONENT_OK)
+		printf("Initialize gyro missing!!!\r\n");
+	if (BSP_MAGNETO_Init(MAGNETO_SENSORS_AUTO, &hMagneto) != COMPONENT_OK)
+		printf("Initialize magneto missing!!!\r\n");
+
+
+  //Initialize BSP network
   WiMOD_LoRaWAN_Init(&huart2);
+  WiMOD_LoRaWAN_Reset();
+  HAL_Delay(200);
+  WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_ACTIVATE_DEVICE_REQ,
+			(uint8_t *) &uSetting.dev_addr, 36);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
 
@@ -387,31 +422,78 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size) {
+  uint8_t cursor = 0;
+  CayenneLPP_Init(size);
+
+//  cayenne_payload_addDigitalInput(uint8_t channel, uint8_t value);
+//  cayenne_payload_addDigitalOutput(uint8_t channel, uint8_t value);
+//
+//  cayenne_payload_addAnalogInput(uint8_t channel, float value);
+//  cayenne_payload_addAnalogOutput(uint8_t channel, float value);
+
+//  cayenne_payload_addLuminosity(LPP_CHANNEL_LUX, data->luminosity);
+  cayenne_payload_addTemperature(LPP_CHANNEL_OUTER_TEMPERATURE, data->temperture);
+  cayenne_payload_addRelativeHumidity(LPP_CHANNEL_HUMIDITY, data->humidity);
+  cayenne_payload_addAccelerometer(LPP_CHANNEL_ACCELERO, data->accel_x, data->accel_y, data->accel_z);
+  cayenne_payload_addBarometricPressure(LPP_CHANNEL_BAR_PRESSURE, data->pressure);
+  cayenne_payload_addGyrometer(LPP_CHANNEL_GYRO, data->gyro_x, data->gyro_y, data->gyro_z);
+  cayenne_payload_addMagnetometer(LPP_CHANNEL_MAGNETO, data->magnet_x, data->magnet_y, data->magnet_z);
+//  cayenne_payload_addGPS(LPP_CHANNEL_GPS, data->latitude, data->longitude, data->altitudeGps);
+//  cayenne_payload_addVoltage(LPP_CHANNEL_VOLTAGE, data->power_meter.vin);
+//  cayenne_payload_addCurrent(LPP_CHANNEL_CURRENT, data->power_meter.iin);
+//  cayenne_payload_addPower(LPP_CHANNEL_POWER_CONSUMP, data->power_meter.power);
+//  cayenne_payload_addPercentage(LPP_CHANNEL_BATTERY_LVL, data->batteryLevel);
+//  cayenne_payload_addPresence(LPP_CHANNEL_RAIN, data->rain.detect);
+//  cayenne_payload_addPercentage(LPP_CHANNEL_RAIN_LVL, data->rain.lvl);
+//  cayenne_payload_addEnergy(LPP_CHANNEL_ENERGY, data->power_meter.energy);
+//  cayenne_payload_addPower(LPP_CHANNEL_POWER_PANEL, data->power_meter.vout * data->power_meter.ipanel);
+//  cayenne_payload_addTemperature(LPP_CHANNEL_INNER_TEMPERATURE, data->weather_data.internal_temp);
+
+  cursor = cayenne_payload_copy(payload);
+
+  CayenneLPP_Deinit();
+  return cursor;
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	SensorAxes_t axes;
   /* Prevent unused argument(s) compilation warning */
   switch (GPIO_Pin) {
 	case GPIO_PIN_0:	//LIS3MDL_DRDY	3-axis magnetometer data ready
-
+		BSP_MAGNETO_Get_Axes(&hMagneto, &axes);
+		dSersor.magnet_x = axes.AXIS_X;
+		dSersor.magnet_y = axes.AXIS_Y;
+		dSersor.magnet_z = axes.AXIS_Z;
 		break;
 	case GPIO_PIN_1:	//LIS3MDL_INT1	3-axis magnetometer interrupt
-
+		//P-N Threshold, range overflow
 			break;
 	case GPIO_PIN_4:	//LPS25HB_INT1	pressure interrupt
-
+		BSP_PRESSURE_Get_Press(&hPressure, &dSersor.pressure);
 			break;
 	case GPIO_PIN_5:	//LSM6DS0_INT1	3-axis accelerometer plus 3-axis gyroscope
+		BSP_ACCELERO_Get_Axes(&hAccel, &axes);
+		dSersor.accel_x = axes.AXIS_X;
+		dSersor.accel_y = axes.AXIS_Y;
+		dSersor.accel_z = axes.AXIS_Z;
 
+		BSP_GYRO_Get_Axes(&hGyro, &axes);
+		dSersor.gyro_x = axes.AXIS_X;
+		dSersor.gyro_y = axes.AXIS_Y;
+		dSersor.gyro_z = axes.AXIS_Z;
 			break;
 	case GPIO_PIN_10:	//HTS221_DRDY	humidity data ready
-
+		BSP_HUMIDITY_Get_Hum(&hHumidity, &dSersor.humidity);
+		BSP_TEMPERATURE_Get_Temp(&hTemperatur, &dSersor.temperture);
 			break;
 	case GPIO_PIN_13:	//B1 [Blue PushButton]
 		BSP_LED_On(LED2);
 
 		HAL_Delay(300);
 		//LoRaWAN Data send
-
+		WiMOD_LoRaWAN_SendURadioData(10, data, 35);
 		BSP_LED_Off(LED2);
 
 			break;
@@ -419,6 +501,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		break;
   }
 
+  //Cayenne LPP payload parse
+  Cayenne_LPP_parse(&dSersor, data, sizeof(data));
   /* NOTE: This function Should not be modified, when the callback is needed,
            the HAL_GPIO_EXTI_Callback could be implemented in the user file
    */

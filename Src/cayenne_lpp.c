@@ -150,26 +150,26 @@ uint8_t cayenne_payload_addRelativeHumidity(uint8_t channel, float rh)
     return cayenne_payload.cursor;
 }
 
-//uint8_t cayenne_payload_addAccelerometer(uint8_t channel, float x, float y, float z)
-//{
-//    if ((cayenne_payload.cursor + LPP_ACCELEROMETER_SIZE) > cayenne_payload.maxsize) {
-//        return 0;
-//    }
-//    int16_t vx = x * 1000;
-//    int16_t vy = y * 1000;
-//    int16_t vz = z * 1000;
-//
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = channel;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_ACCELEROMETER;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vx >> 8;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vx;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vy >> 8;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vy;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vz >> 8;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vz;
-//
-//    return cayenne_payload.cursor;
-//}
+uint8_t cayenne_payload_addAccelerometer(uint8_t channel, int32_t x, int32_t y, int32_t z)
+{
+    if ((cayenne_payload.cursor + LPP_ACCELEROMETER_SIZE) > cayenne_payload.maxsize) {
+        return 0;
+    }
+    int16_t vx = x * 1000;
+    int16_t vy = y * 1000;
+    int16_t vz = z * 1000;
+
+    cayenne_payload.buffer[cayenne_payload.cursor++] = channel;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_ACCELEROMETER;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vx >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vx;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vy >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vy;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vz >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vz;
+
+    return cayenne_payload.cursor;
+}
 
 uint8_t cayenne_payload_addBarometricPressure(uint8_t channel, float hpa)
 {
@@ -186,26 +186,47 @@ uint8_t cayenne_payload_addBarometricPressure(uint8_t channel, float hpa)
     return cayenne_payload.cursor;
 }
 
-//uint8_t cayenne_payload_addGyrometer(uint8_t channel, float x, float y, float z)
-//{
-//    if ((cayenne_payload.cursor + LPP_GYROMETER_SIZE) > cayenne_payload.maxsize) {
-//        return 0;
-//    }
-//    int16_t vx = x * 100;
-//    int16_t vy = y * 100;
-//    int16_t vz = z * 100;
-//
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = channel;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_GYROMETER;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vx >> 8;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vx;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vy >> 8;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vy;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vz >> 8;
-//    cayenne_payload.buffer[cayenne_payload.cursor++] = vz;
-//
-//    return cayenne_payload.cursor;
-//}
+uint8_t cayenne_payload_addGyrometer(uint8_t channel, int32_t x, int32_t y, int32_t z)
+{
+    if ((cayenne_payload.cursor + LPP_GYROMETER_SIZE) > cayenne_payload.maxsize) {
+        return 0;
+    }
+    int16_t vx = x * 100;
+    int16_t vy = y * 100;
+    int16_t vz = z * 100;
+
+    cayenne_payload.buffer[cayenne_payload.cursor++] = channel;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_GYROMETER;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vx >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vx;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vy >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vy;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vz >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vz;
+
+    return cayenne_payload.cursor;
+}
+
+uint8_t cayenne_payload_addMagnetometer(uint8_t channel, int32_t x, int32_t y, int32_t z)
+{
+    if ((cayenne_payload.cursor + LPP_MAGNETOMETER_SIZE) > cayenne_payload.maxsize) {
+        return 0;
+    }
+    int16_t vx = x * 100;
+    int16_t vy = y * 100;
+    int16_t vz = z * 100;
+
+    cayenne_payload.buffer[cayenne_payload.cursor++] = channel;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_GYROMETER;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vx >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vx;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vy >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vy;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vz >> 8;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = vz;
+
+    return cayenne_payload.cursor;
+}
 
 uint8_t cayenne_payload_addGPS(uint8_t channel, float latitude, float longitude, float meters)
 {

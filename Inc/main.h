@@ -46,6 +46,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdint.h"
 #include "stdbool.h"
+
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
@@ -96,18 +97,18 @@
 
 /* USER CODE BEGIN Private defines */
 typedef struct {
-	uint32_t temperture;
-	uint32_t pressure;
-	uint32_t humidity;
-	uint32_t gyro_x;
-	uint32_t gyro_y;
-	uint32_t gyro_z;
-	uint32_t accel_x;
-	uint32_t accel_y;
-	uint32_t accel_z;
-	uint32_t magnet_x;
-	uint32_t magnet_y;
-	uint32_t magnet_z;
+	float temperture;
+	float pressure;
+	float humidity;
+	int32_t gyro_x;
+	int32_t gyro_y;
+	int32_t gyro_z;
+	int32_t accel_x;
+	int32_t accel_y;
+	int32_t accel_z;
+	int32_t magnet_x;
+	int32_t magnet_y;
+	int32_t magnet_z;
 } sensor_t;
 
 typedef struct {
