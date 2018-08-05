@@ -84,12 +84,12 @@ static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size)
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-DrvContextTypeDef hTemperatur;
-DrvContextTypeDef hHumidity;
-DrvContextTypeDef hPressure;
-DrvContextTypeDef hAccel;
-DrvContextTypeDef hGyro;
-DrvContextTypeDef hMagneto;
+void *hTemperatur;
+void *hHumidity;
+void *hPressure;
+void *hAccel;
+void *hGyro;
+void *hMagneto;
 /* USER CODE END 0 */
 
 /**
@@ -118,7 +118,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-  EEPROM_GetUserSetting(0, (uint32_t*) &uSetting, sizeof(user_setting_t));
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -128,9 +128,9 @@ int main(void)
   MX_I2C1_Init();
   MX_ADC_Init();
   /* USER CODE BEGIN 2 */
-
+  EEPROM_GetUserSetting(0, (uint32_t*) &uSetting, sizeof(user_setting_t));
   //Initialize BSP sensor
-  Sensor_IO_Init();
+//  Sensor_IO_Init();
 	if (BSP_TEMPERATURE_Init(TEMPERATURE_SENSORS_AUTO, &hTemperatur)
 			!= COMPONENT_OK)
 		printf("Initialize temperature missing!!!\r\n");
@@ -145,6 +145,12 @@ int main(void)
 	if (BSP_MAGNETO_Init(MAGNETO_SENSORS_AUTO, &hMagneto) != COMPONENT_OK)
 		printf("Initialize magneto missing!!!\r\n");
 
+	  BSP_HUMIDITY_Sensor_Enable( hHumidity );
+	  BSP_TEMPERATURE_Sensor_Enable( hTemperatur );
+	  BSP_PRESSURE_Sensor_Enable( hPressure );
+	  BSP_ACCELERO_Sensor_Enable( hAccel );
+	  BSP_GYRO_Sensor_Enable( hGyro );
+	  BSP_MAGNETO_Sensor_Enable( hMagneto );
 
   //Initialize BSP network
   WiMOD_LoRaWAN_Init(&huart2);
@@ -491,7 +497,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	case GPIO_PIN_13:	//B1 [Blue PushButton]
 		BSP_LED_On(LED2);
 
-		HAL_Delay(300);
+//		HAL_Delay(100);
 		//LoRaWAN Data send
 		WiMOD_LoRaWAN_SendURadioData(10, data, 35);
 		BSP_LED_Off(LED2);
