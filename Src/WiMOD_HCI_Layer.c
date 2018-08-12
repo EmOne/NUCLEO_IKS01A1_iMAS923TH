@@ -155,10 +155,10 @@ WiMOD_HCI_SendMessage(TWiMOD_HCI_Message* txMessage)
     {
         // send wakeup chars
         for(int i= 0; i < 40; i++)
-            HAL_UART_Transmit(&huart2, (uint8_t ) SLIP_END, 1, 100);
+            HAL_UART_Transmit(&huart2, (uint8_t ) SLIP_END, 1, 500);
 
         // 4. send octet sequence over serial device
-        if (HAL_UART_Transmit(&huart2, TxBuffer, txLength, 100) > 0)
+        if (HAL_UART_Transmit(&huart2, TxBuffer, txLength, HAL_MAX_DELAY) != HAL_ERROR)
         {
             // return ok
             return 1;

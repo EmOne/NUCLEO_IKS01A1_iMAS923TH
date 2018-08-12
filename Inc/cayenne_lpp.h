@@ -37,6 +37,7 @@ typedef enum {
 #define LPP_TEMPERATURE         103     // 2 bytes, 0.1°C signed
 #define LPP_RELATIVE_HUMIDITY   104     // 1 byte, 0.5% unsigned
 #define LPP_ACCELEROMETER       113     // 2 bytes per axis, 0.001G
+#define LPP_MAGNETOMETER           114     // 2 bytes per axis, 0.01 flux
 #define LPP_BAROMETRIC_PRESSURE 115     // 2 bytes 0.1 hPa Unsigned
 #define LPP_VOLTAGE		116     // 2 bytes 0.1 V signed
 #define LPP_CURRENT		117     // 2 bytes 0.1 A signed
@@ -46,7 +47,7 @@ typedef enum {
 #define LPP_ENERGY		131     // 2 bytes 2 unsigned
 #define LPP_DIRECTION		132     // 1 bytes 1 unsigned
 #define LPP_GYROMETER           134     // 2 bytes per axis, 0.01 °/s
-#define LPP_MAGNETOMETER           135     // 2 bytes per axis, 0.01 flux
+
 #define LPP_GPS                 136     // 3 byte lon/lat 0.0001 °, 3 bytes alt 0.01m
 //#define LPP_POSITIONER   137     // 1 bytes
 //#define LPP_UP_DOWN_CONTROL   144     // 1 bytes

@@ -421,8 +421,8 @@ int WiMOD_LoRaWAN_Msg_Req(uint8_t msg_id, uint8_t* val, uint16_t len)
 
 	ret = WiMOD_HCI_SendMessage(&TxMessage);
 
-	if(ret)
-		WiMOD_HCI_Process();
+//	if(ret)
+//		WiMOD_HCI_Process();
 
 	return ret;
 }

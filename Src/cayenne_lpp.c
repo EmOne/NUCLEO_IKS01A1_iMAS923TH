@@ -217,7 +217,7 @@ uint8_t cayenne_payload_addMagnetometer(uint8_t channel, int32_t x, int32_t y, i
     int16_t vz = z * 100;
 
     cayenne_payload.buffer[cayenne_payload.cursor++] = channel;
-    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_GYROMETER;
+    cayenne_payload.buffer[cayenne_payload.cursor++] = LPP_MAGNETOMETER;
     cayenne_payload.buffer[cayenne_payload.cursor++] = vx >> 8;
     cayenne_payload.buffer[cayenne_payload.cursor++] = vx;
     cayenne_payload.buffer[cayenne_payload.cursor++] = vy >> 8;

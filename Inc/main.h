@@ -109,6 +109,9 @@ typedef struct {
 	int32_t magnet_x;
 	int32_t magnet_y;
 	int32_t magnet_z;
+	float latitude;
+	float longitude;
+	float altitudeGps;
 } sensor_t;
 
 typedef struct {

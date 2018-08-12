@@ -201,38 +201,38 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 
     /* USART2 DMA Init */
     /* USART2_RX Init */
-    hdma_usart2_rx.Instance = DMA1_Channel5;
-    hdma_usart2_rx.Init.Request = DMA_REQUEST_4;
-    hdma_usart2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    hdma_usart2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_usart2_rx.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_usart2_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_usart2_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_usart2_rx.Init.Mode = DMA_CIRCULAR;
-    hdma_usart2_rx.Init.Priority = DMA_PRIORITY_LOW;
-    if (HAL_DMA_Init(&hdma_usart2_rx) != HAL_OK)
-    {
-      _Error_Handler(__FILE__, __LINE__);
-    }
-
-    __HAL_LINKDMA(huart,hdmarx,hdma_usart2_rx);
-
-    /* USART2_TX Init */
-    hdma_usart2_tx.Instance = DMA1_Channel4;
-    hdma_usart2_tx.Init.Request = DMA_REQUEST_4;
-    hdma_usart2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    hdma_usart2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_usart2_tx.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_usart2_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_usart2_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_usart2_tx.Init.Mode = DMA_NORMAL;
-    hdma_usart2_tx.Init.Priority = DMA_PRIORITY_LOW;
-    if (HAL_DMA_Init(&hdma_usart2_tx) != HAL_OK)
-    {
-      _Error_Handler(__FILE__, __LINE__);
-    }
-
-    __HAL_LINKDMA(huart,hdmatx,hdma_usart2_tx);
+//    hdma_usart2_rx.Instance = DMA1_Channel5;
+//    hdma_usart2_rx.Init.Request = DMA_REQUEST_4;
+//    hdma_usart2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+//    hdma_usart2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+//    hdma_usart2_rx.Init.MemInc = DMA_MINC_ENABLE;
+//    hdma_usart2_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+//    hdma_usart2_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+//    hdma_usart2_rx.Init.Mode = DMA_CIRCULAR;
+//    hdma_usart2_rx.Init.Priority = DMA_PRIORITY_LOW;
+//    if (HAL_DMA_Init(&hdma_usart2_rx) != HAL_OK)
+//    {
+//      _Error_Handler(__FILE__, __LINE__);
+//    }
+//
+//    __HAL_LINKDMA(huart,hdmarx,hdma_usart2_rx);
+//
+//    /* USART2_TX Init */
+//    hdma_usart2_tx.Instance = DMA1_Channel4;
+//    hdma_usart2_tx.Init.Request = DMA_REQUEST_4;
+//    hdma_usart2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+//    hdma_usart2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+//    hdma_usart2_tx.Init.MemInc = DMA_MINC_ENABLE;
+//    hdma_usart2_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+//    hdma_usart2_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+//    hdma_usart2_tx.Init.Mode = DMA_NORMAL;
+//    hdma_usart2_tx.Init.Priority = DMA_PRIORITY_LOW;
+//    if (HAL_DMA_Init(&hdma_usart2_tx) != HAL_OK)
+//    {
+//      _Error_Handler(__FILE__, __LINE__);
+//    }
+//
+//    __HAL_LINKDMA(huart,hdmatx,hdma_usart2_tx);
 
     /* USART2 interrupt Init */
     HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);

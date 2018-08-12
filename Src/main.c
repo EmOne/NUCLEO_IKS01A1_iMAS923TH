@@ -68,6 +68,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 sensor_t dSersor;
 user_setting_t uSetting;
 uint8_t data[255];
+int8_t count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,7 +81,7 @@ static void MX_ADC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size);
+static uint8_t Cayenne_LPP_parse(LPP_CHANNEL_e chan, sensor_t *data, uint8_t * payload, size_t size);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -100,6 +101,7 @@ void *hMagneto;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	SensorAxes_t axes;
 	memset(&dSersor, 0x0, sizeof(sensor_t));
 	memset(&uSetting, 0x0,sizeof(user_setting_t));
 
@@ -154,10 +156,15 @@ int main(void)
 
   //Initialize BSP network
   WiMOD_LoRaWAN_Init(&huart2);
-  WiMOD_LoRaWAN_Reset();
-  HAL_Delay(200);
+//  WiMOD_LoRaWAN_Reset();
+//  HAL_Delay(200);
+  uint8_t dummy_uSetting[37]= { 0xCF, 0x14, 0x04, 0x26, //Device address (LSB)
+		   0x49, 0xE1, 0x85, 0x00, 0x3F, 0xCB, 0x1F, 0xEF, 0xE9, 0x32, 0xA4, 0xAC, 0x14, 0xA2, 0x25, 0xF6 ,	//Network key (MSB)
+		    0x2D, 0xB9, 0x49, 0x96, 0xCC, 0x18, 0x7D, 0x63, 0xE6, 0x90, 0xAD, 0x7D, 0x5B, 0x6E, 0x9F, 0xDB , //App key (MSB)
+			0x00};
+
   WiMOD_LoRaWAN_Msg_Req(LORAWAN_MSG_ACTIVATE_DEVICE_REQ,
-			(uint8_t *) &uSetting.dev_addr, 36);
+			(uint8_t *) dummy_uSetting, 37);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -165,11 +172,30 @@ int main(void)
 
   while (1)
   {
-
+	  WiMOD_DevMgmt_Msg_Req(DEVMGMT_MSG_PING_REQ, NULL, 0);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  //Read sensor
+		//Read sensor
+		BSP_MAGNETO_Get_Axes(hMagneto, &axes);
+		dSersor.magnet_x = axes.AXIS_X;
+		dSersor.magnet_y = axes.AXIS_Y;
+		dSersor.magnet_z = axes.AXIS_Z;
+		BSP_PRESSURE_Get_Press(hPressure, &dSersor.pressure);
+		BSP_ACCELERO_Get_Axes(hAccel, &axes);
+		dSersor.accel_x = axes.AXIS_X;
+		dSersor.accel_y = axes.AXIS_Y;
+		dSersor.accel_z = axes.AXIS_Z;
+
+		BSP_GYRO_Get_Axes(hGyro, &axes);
+		dSersor.gyro_x = axes.AXIS_X;
+		dSersor.gyro_y = axes.AXIS_Y;
+		dSersor.gyro_z = axes.AXIS_Z;
+		BSP_HUMIDITY_Get_Hum(hHumidity, &dSersor.humidity);
+		BSP_TEMPERATURE_Get_Temp(hTemperatur, &dSersor.temperture);
+		dSersor.latitude = 13.7979;
+		dSersor.longitude = 100.6979;
+		dSersor.altitudeGps = 8;
 	  //Parse Cayenne
 //	  Cayenne_LPP_parse(&sensor, AppData->Buff, 255);
 	  //Send data
@@ -337,7 +363,7 @@ static void MX_USART2_UART_Init(void)
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_ENABLE;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -428,7 +454,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size) {
+static uint8_t Cayenne_LPP_parse(LPP_CHANNEL_e chan, sensor_t *data, uint8_t * payload, size_t size) {
   uint8_t cursor = 0;
   CayenneLPP_Init(size);
 
@@ -439,13 +465,53 @@ static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size)
 //  cayenne_payload_addAnalogOutput(uint8_t channel, float value);
 
 //  cayenne_payload_addLuminosity(LPP_CHANNEL_LUX, data->luminosity);
-  cayenne_payload_addTemperature(LPP_CHANNEL_OUTER_TEMPERATURE, data->temperture);
-  cayenne_payload_addRelativeHumidity(LPP_CHANNEL_HUMIDITY, data->humidity);
-  cayenne_payload_addAccelerometer(LPP_CHANNEL_ACCELERO, data->accel_x, data->accel_y, data->accel_z);
-  cayenne_payload_addBarometricPressure(LPP_CHANNEL_BAR_PRESSURE, data->pressure);
-  cayenne_payload_addGyrometer(LPP_CHANNEL_GYRO, data->gyro_x, data->gyro_y, data->gyro_z);
-  cayenne_payload_addMagnetometer(LPP_CHANNEL_MAGNETO, data->magnet_x, data->magnet_y, data->magnet_z);
-//  cayenne_payload_addGPS(LPP_CHANNEL_GPS, data->latitude, data->longitude, data->altitudeGps);
+	switch (chan) {
+	case LPP_CHANNEL_OUTER_TEMPERATURE:
+		cayenne_payload_addTemperature(LPP_CHANNEL_OUTER_TEMPERATURE,
+				data->temperture);
+		break;
+	case LPP_CHANNEL_HUMIDITY:
+		cayenne_payload_addRelativeHumidity(LPP_CHANNEL_HUMIDITY,
+				data->humidity);
+		break;
+	case LPP_CHANNEL_BAR_PRESSURE:
+		cayenne_payload_addBarometricPressure(LPP_CHANNEL_BAR_PRESSURE,
+				data->pressure);
+		break;
+	case LPP_CHANNEL_GPS:
+		cayenne_payload_addGPS(LPP_CHANNEL_GPS, data->latitude, data->longitude,
+				data->altitudeGps);
+		break;
+	case LPP_CHANNEL_ACCELERO:
+		cayenne_payload_addAccelerometer(LPP_CHANNEL_ACCELERO, data->accel_x,
+				data->accel_y, data->accel_z);
+		break;
+	case LPP_CHANNEL_GYRO:
+		cayenne_payload_addGyrometer(LPP_CHANNEL_GYRO, data->gyro_x,
+				data->gyro_y, data->gyro_z);
+		break;
+	case LPP_CHANNEL_MAGNETO:
+		cayenne_payload_addMagnetometer(LPP_CHANNEL_MAGNETO, data->magnet_x,
+				data->magnet_y, data->magnet_z);
+		break;
+	default:
+		cayenne_payload_addTemperature(LPP_CHANNEL_OUTER_TEMPERATURE,
+						data->temperture);
+		cayenne_payload_addRelativeHumidity(LPP_CHANNEL_HUMIDITY,
+						data->humidity);
+		cayenne_payload_addBarometricPressure(LPP_CHANNEL_BAR_PRESSURE,
+						data->pressure);
+		cayenne_payload_addGPS(LPP_CHANNEL_GPS, data->latitude, data->longitude,
+						data->altitudeGps);
+		break;
+}
+
+
+
+
+
+
+
 //  cayenne_payload_addVoltage(LPP_CHANNEL_VOLTAGE, data->power_meter.vin);
 //  cayenne_payload_addCurrent(LPP_CHANNEL_CURRENT, data->power_meter.iin);
 //  cayenne_payload_addPower(LPP_CHANNEL_POWER_CONSUMP, data->power_meter.power);
@@ -464,51 +530,61 @@ static uint8_t Cayenne_LPP_parse(sensor_t *data, uint8_t * payload, size_t size)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	SensorAxes_t axes;
+//	SensorAxes_t axes;
+	uint8_t len;
+
   /* Prevent unused argument(s) compilation warning */
   switch (GPIO_Pin) {
 	case GPIO_PIN_0:	//LIS3MDL_DRDY	3-axis magnetometer data ready
-		BSP_MAGNETO_Get_Axes(&hMagneto, &axes);
-		dSersor.magnet_x = axes.AXIS_X;
-		dSersor.magnet_y = axes.AXIS_Y;
-		dSersor.magnet_z = axes.AXIS_Z;
+//		BSP_MAGNETO_Get_Axes(hMagneto, &axes);
+//		dSersor.magnet_x = axes.AXIS_X;
+//		dSersor.magnet_y = axes.AXIS_Y;
+//		dSersor.magnet_z = axes.AXIS_Z;
 		break;
 	case GPIO_PIN_1:	//LIS3MDL_INT1	3-axis magnetometer interrupt
 		//P-N Threshold, range overflow
 			break;
 	case GPIO_PIN_4:	//LPS25HB_INT1	pressure interrupt
-		BSP_PRESSURE_Get_Press(&hPressure, &dSersor.pressure);
+//		BSP_PRESSURE_Get_Press(hPressure, &dSersor.pressure);
 			break;
 	case GPIO_PIN_5:	//LSM6DS0_INT1	3-axis accelerometer plus 3-axis gyroscope
-		BSP_ACCELERO_Get_Axes(&hAccel, &axes);
-		dSersor.accel_x = axes.AXIS_X;
-		dSersor.accel_y = axes.AXIS_Y;
-		dSersor.accel_z = axes.AXIS_Z;
-
-		BSP_GYRO_Get_Axes(&hGyro, &axes);
-		dSersor.gyro_x = axes.AXIS_X;
-		dSersor.gyro_y = axes.AXIS_Y;
-		dSersor.gyro_z = axes.AXIS_Z;
+//		BSP_ACCELERO_Get_Axes(hAccel, &axes);
+//		dSersor.accel_x = axes.AXIS_X;
+//		dSersor.accel_y = axes.AXIS_Y;
+//		dSersor.accel_z = axes.AXIS_Z;
+//
+//		BSP_GYRO_Get_Axes(hGyro, &axes);
+//		dSersor.gyro_x = axes.AXIS_X;
+//		dSersor.gyro_y = axes.AXIS_Y;
+//		dSersor.gyro_z = axes.AXIS_Z;
 			break;
 	case GPIO_PIN_10:	//HTS221_DRDY	humidity data ready
-		BSP_HUMIDITY_Get_Hum(&hHumidity, &dSersor.humidity);
-		BSP_TEMPERATURE_Get_Temp(&hTemperatur, &dSersor.temperture);
+//		BSP_HUMIDITY_Get_Hum(hHumidity, &dSersor.humidity);
+//		BSP_TEMPERATURE_Get_Temp(hTemperatur, &dSersor.temperture);
 			break;
 	case GPIO_PIN_13:	//B1 [Blue PushButton]
 		BSP_LED_On(LED2);
 
+		 //Cayenne LPP payload parse
+		len =  Cayenne_LPP_parse(99, &dSersor, data, sizeof(data));
+
 //		HAL_Delay(100);
 		//LoRaWAN Data send
-		WiMOD_LoRaWAN_SendURadioData(10, data, 35);
+		UINT8 port = 0x21;
+
+//		    UINT8 data1[15] = { 0x00, 0x67, 0x01, 0x6E, 0x01, 0x88, 0x02, 0x1A, 0xFB, 0x0F, 0x5A, 0x00, 0x00, 0x03, 0x20 } ;//0067016E0188021AFB0F5A00000320
+
+		    // send unconfirmed radio message
+		    len =WiMOD_LoRaWAN_SendURadioData(port, data, len);
+//		len = WiMOD_LoRaWAN_SendURadioData(port, data, 11);
 		BSP_LED_Off(LED2);
 
+		count = count < 21 ? count + 1 : 0;
 			break;
 	default:
 		break;
   }
 
-  //Cayenne LPP payload parse
-  Cayenne_LPP_parse(&dSersor, data, sizeof(data));
   /* NOTE: This function Should not be modified, when the callback is needed,
            the HAL_GPIO_EXTI_Callback could be implemented in the user file
    */
