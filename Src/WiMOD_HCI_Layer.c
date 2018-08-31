@@ -66,7 +66,9 @@ static TWiMOD_HCI_MsgLayer  HCI;
 // reserve one TxBuffer
 static UINT8                TxBuffer[sizeof( TWiMOD_HCI_Message ) * 2 + 2];
 
-UINT8   rxBuf_WiMOD[255] = { 0 };
+//UINT8   rxBuf_WiMOD[255] = { 0 };
+//UINT32  slip_rx_cnt;
+UINT8   slip_buff_byte;
 
 //------------------------------------------------------------------------------
 //
@@ -103,6 +105,9 @@ WiMOD_HCI_Init(
 
     // init serial device
     UART_SetConfig(comPort);
+
+    HAL_UART_Receive_DMA(&huart2, &slip_buff_byte, 1);
+
     return true;
 }
 
@@ -181,19 +186,21 @@ void
 WiMOD_HCI_Process()
 {
 //	int len;
-	HAL_StatusTypeDef ret;
+//	HAL_StatusTypeDef ret;
 
 	// read small chunk of data
-    ret = HAL_UART_Receive(&huart2, rxBuf_WiMOD, 255, 500);
+//    ret = HAL_UART_Receive(&huart2, rxBuf_WiMOD, 255, 500);
+
 //    msg_state = HEADER;
     // data available ?
-    if (ret > -1)
-    {
+//    if (ret > -1)
+//    {
         // yes, forward to SLIP decoder, decoded SLIP message will be passed to
         // function "WiMOD_HCI_ProcessRxMessage"
-        SLIP_DecodeData(rxBuf_WiMOD, sizeof(rxBuf_WiMOD));
+        SLIP_DecodeData(&slip_buff_byte, 1);
+//        SLIP_DecodeData(rxBuf_WiMOD, sizeof(rxBuf_WiMOD));
 
-    }
+//    }
 }
 
 //------------------------------------------------------------------------------

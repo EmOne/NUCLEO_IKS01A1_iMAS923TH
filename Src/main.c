@@ -56,12 +56,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc;
+DMA_HandleTypeDef hdma_adc;
 
 I2C_HandleTypeDef hi2c1;
 
+RTC_HandleTypeDef hrtc;
+
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
-DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -78,6 +80,7 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_ADC_Init(void);
+static void MX_RTC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -101,6 +104,7 @@ void *hMagneto;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	uint8_t len;
 	SensorAxes_t axes;
 	memset(&dSersor, 0x0, sizeof(sensor_t));
 	memset(&uSetting, 0x0,sizeof(user_setting_t));
@@ -128,7 +132,8 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
-  MX_ADC_Init();
+//  MX_ADC_Init();
+//  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
   EEPROM_GetUserSetting(0, (uint32_t*) &uSetting, sizeof(user_setting_t));
   //Initialize BSP sensor
@@ -157,7 +162,7 @@ int main(void)
   //Initialize BSP network
   WiMOD_LoRaWAN_Init(&huart2);
 //  WiMOD_LoRaWAN_Reset();
-//  HAL_Delay(200);
+  HAL_Delay(200);
   uint8_t dummy_uSetting[37]= { 0xCF, 0x14, 0x04, 0x26, //Device address (LSB)
 		   0x49, 0xE1, 0x85, 0x00, 0x3F, 0xCB, 0x1F, 0xEF, 0xE9, 0x32, 0xA4, 0xAC, 0x14, 0xA2, 0x25, 0xF6 ,	//Network key (MSB)
 		    0x2D, 0xB9, 0x49, 0x96, 0xCC, 0x18, 0x7D, 0x63, 0xE6, 0x90, 0xAD, 0x7D, 0x5B, 0x6E, 0x9F, 0xDB , //App key (MSB)
@@ -198,9 +203,12 @@ int main(void)
 		dSersor.altitudeGps = 8;
 	  //Parse Cayenne
 //	  Cayenne_LPP_parse(&sensor, AppData->Buff, 255);
+		len = Cayenne_LPP_parse(99, &dSersor, data, sizeof(data));
+		// send unconfirmed radio message
+		len = WiMOD_LoRaWAN_SendURadioData(0x21, data, len);
 	  //Send data
-	  WiMOD_LoRaWAN_Process();
-	  HAL_Delay(1);
+//	  WiMOD_LoRaWAN_Process();
+	  HAL_Delay(5000);
   }
   /* USER CODE END 3 */
 
@@ -223,11 +231,14 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 16;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_3;
+  RCC_OscInitStruct.PLL.PLLDIV = RCC_PLLDIV_2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -237,19 +248,21 @@ void SystemClock_Config(void)
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_RTC;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -277,16 +290,16 @@ static void MX_ADC_Init(void)
     */
   hadc.Instance = ADC1;
   hadc.Init.OversamplingMode = DISABLE;
-  hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV1;
+  hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc.Init.Resolution = ADC_RESOLUTION_12B;
   hadc.Init.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc.Init.ContinuousConvMode = ENABLE;
+  hadc.Init.ContinuousConvMode = DISABLE;
   hadc.Init.DiscontinuousConvMode = DISABLE;
   hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc.Init.DMAContinuousRequests = ENABLE;
+  hadc.Init.DMAContinuousRequests = DISABLE;
   hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc.Init.LowPowerAutoWait = DISABLE;
@@ -321,7 +334,7 @@ static void MX_I2C1_Init(void)
 {
 
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00000708;
+  hi2c1.Init.Timing = 0x00506682;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -350,12 +363,54 @@ static void MX_I2C1_Init(void)
 
 }
 
+/* RTC init function */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+
+    /**Initialize RTC Only 
+    */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_POS1;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
+
+    /**Enable Calibrartion 
+    */
+  if (HAL_RTCEx_SetCalibrationOutPut(&hrtc, RTC_CALIBOUTPUT_1HZ) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+  /* USER CODE BEGIN RTC_Init 3 */
+
+  /* USER CODE END RTC_Init 3 */
+
+}
+
 /* USART2 init function */
 static void MX_USART2_UART_Init(void)
 {
 
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -363,7 +418,7 @@ static void MX_USART2_UART_Init(void)
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_ENABLE;
+   huart2.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -380,6 +435,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel4_5_6_7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_5_6_7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_5_6_7_IRQn);
@@ -497,12 +555,13 @@ static uint8_t Cayenne_LPP_parse(LPP_CHANNEL_e chan, sensor_t *data, uint8_t * p
 	default:
 		cayenne_payload_addTemperature(LPP_CHANNEL_OUTER_TEMPERATURE,
 						data->temperture);
-		cayenne_payload_addRelativeHumidity(LPP_CHANNEL_HUMIDITY,
-						data->humidity);
-		cayenne_payload_addBarometricPressure(LPP_CHANNEL_BAR_PRESSURE,
-						data->pressure);
+//		cayenne_payload_addRelativeHumidity(LPP_CHANNEL_HUMIDITY,
+//						data->humidity);
+//		cayenne_payload_addBarometricPressure(LPP_CHANNEL_BAR_PRESSURE,
+//						data->pressure);
 		cayenne_payload_addGPS(LPP_CHANNEL_GPS, data->latitude, data->longitude,
 						data->altitudeGps);
+//		ayenne_payload_addDigitalInput(LPP_CHANNEL_DI, data->di);
 		break;
 }
 
@@ -570,16 +629,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 //		HAL_Delay(100);
 		//LoRaWAN Data send
-		UINT8 port = 0x21;
+		UINT8 port = 0x22;
 
-//		    UINT8 data1[15] = { 0x00, 0x67, 0x01, 0x6E, 0x01, 0x88, 0x02, 0x1A, 0xFB, 0x0F, 0x5A, 0x00, 0x00, 0x03, 0x20 } ;//0067016E0188021AFB0F5A00000320
+	    UINT8 data1[3] = { (uint8_t) LPP_CHANNEL_DI, (uint8_t) LPP_DIGITAL_INPUT, (uint8_t) count % 2 } ;//0067016E0188021AFB0F5A00000320
 
 		    // send unconfirmed radio message
-		    len =WiMOD_LoRaWAN_SendURadioData(port, data, len);
+		    len =WiMOD_LoRaWAN_SendURadioData(port, data1, 3);
 //		len = WiMOD_LoRaWAN_SendURadioData(port, data, 11);
 		BSP_LED_Off(LED2);
 
 		count = count < 21 ? count + 1 : 0;
+		HAL_Delay(50);
 			break;
 	default:
 		break;
@@ -588,6 +648,21 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   /* NOTE: This function Should not be modified, when the callback is needed,
            the HAL_GPIO_EXTI_Callback could be implemented in the user file
    */
+}
+
+/**
+  * @brief Rx Transfer completed callback.
+  * @param huart: UART handle.
+  * @retval None
+  */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_UART_RxCpltCallback can be implemented in the user file.
+   */
+	if (huart->Instance == USART2) {
+		WiMOD_LoRaWAN_Process();
+	}
 }
 /* USER CODE END 4 */
 

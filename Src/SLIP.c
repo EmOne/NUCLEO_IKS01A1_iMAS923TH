@@ -229,7 +229,11 @@ SLIP_DecodeData(UINT8* srcData, int srcLength)
     while(srcLength--)
     {
         // get rxByte
-        UINT8 rxByte = *srcData++;
+        UINT8 rxByte = *srcData;
+
+        if (srcLength > 0) {
+			srcData++;
+		}
 
         // decode according to current state
         switch(SLIP.RxState)

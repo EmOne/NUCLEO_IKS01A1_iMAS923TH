@@ -112,6 +112,7 @@ typedef struct {
 	float latitude;
 	float longitude;
 	float altitudeGps;
+	uint8_t di;
 } sensor_t;
 
 typedef struct {
